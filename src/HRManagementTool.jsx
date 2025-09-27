@@ -1,226 +1,145 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Calculator, Download, Plus, Edit3, Trash2, Save, X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
 
-const HRManagementTool = () => {
-  const [activeTab, setActiveTab] = useState('planning');
-  const [employees, setEmployees] = useState([
-    { id: 1, name: 'NAWEL', role: 'OPH', hourlyRate: 25 },
-    { id: 2, name: 'BASMA', role: 'OPH', hourlyRate: 23 },
-    { id: 3, name: 'INES', role: 'Orthos', hourlyRate: 28 },
-    { id: 4, name: 'JOVANTHA', role: 'Secrétaire', hourlyRate: 18 },
-    { id: 5, name: 'CAMELIA', role: 'Secrétaire', hourlyRate: 18 },
-    { id: 6, name: 'AMINA', role: 'Secrétaire', hourlyRate: 18 },
-    { id: 7, name: 'ECOLE', role: 'Secrétaire', hourlyRate: 15 },
-    { id: 8, name: 'ANDREI', role: 'Dentiste', hourlyRate: 85 },
-    { id: 9, name: 'OLGA', role: 'Assistante Dentaire', hourlyRate: 22 },
-    { id: 10, name: 'MANUEL', role: 'Assistante Dentaire', hourlyRate: 22 },
-    { id: 11, name: 'OLESEA', role: 'Assistante Dentaire', hourlyRate: 21 },
-    { id: 12, name: 'FLORIAN', role: 'OPH', hourlyRate: 26 },
-    { id: 13, name: 'KARIMA/AUDE', role: 'Orthos', hourlyRate: 29 },
-    { id: 14, name: 'KAMAL', role: 'OPH', hourlyRate: 24 },
-    { id: 15, name: 'SAMIA', role: 'Orthos', hourlyRate: 27 }
-  ]);
+function HRManagementTool() {
+  const [date, setDate] = useState("");
+  const [employee, setEmployee] = useState("");
+  const [role, setRole] = useState("");
+  const [salaire, setSalaire] = useState("");
+  const [jour, setJour] = useState("");
 
-  const [schedule, setSchedule] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [records, setRecords] = useState([]); // pour afficher les lignes Google Sheets
+  const [loading, setLoading] = useState(false);
 
-  const roles = ['OPH', 'Orthos', 'Secrétaire', 'Dentiste', 'Assistante Dentaire'];
-  const months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-  const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  // URL de ton Web App Google Apps Script
+  const SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbxNoLkKxH4vNoNgzZaka83RWUQ-swAW4jS6yAiNb58haputHZNClcFjy3u3_sk/exec";
+
+  // Charger les données depuis Google Sheets
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(SCRIPT_URL);
+      const data = await response.json();
+      setRecords(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement :", error);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    generateSchedule();
-  }, [selectedMonth, selectedYear]);
+    fetchData();
+  }, []);
 
-  const generateSchedule = () => {
-    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-    const firstDay = new Date(selectedYear, selectedMonth, 1).getDay();
-    const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
-
-    const scheduleData = [];
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayOfWeek = (adjustedFirstDay + day - 1) % 7;
-      scheduleData.push({
-        day,
-        dayName: days[dayOfWeek],
-        assignments: {}
-      });
-    }
-    setSchedule(scheduleData);
-  };
-
-  const updateAssignment = (day, role, employeeId, hours = 8) => {
-    setSchedule(prev => prev.map(scheduleDay => {
-      if (scheduleDay.day === day) {
-        return {
-          ...scheduleDay,
-          assignments: {
-            ...scheduleDay.assignments,
-            [role]: employeeId ? { employeeId, hours } : null
-          }
-        };
-      }
-      return scheduleDay;
-    }));
-  };
-
-  const calculateDailySalary = (employeeId, hours = 8) => {
-    const employee = employees.find(e => e.id === employeeId);
-    return employee ? employee.hourlyRate * hours : 0;
-  };
-
-  // === Sauvegarde vers Google Sheets ===
-  const saveToGoogleSheets = async () => {
-    const API_KEY = "AIzaSyAE0-wIF_9PMImV86ZX2aullehrYmO71bY"; // <-- Remplace ici
-    const SHEET_ID = "1fnpWA_P1uUE0SbhiIfwj1hmlraZBFMIrv5MxSX0Qzno"; // <-- Remplace ici
-    const RANGE = "Feuille1!A:D";
-
-    const rows = schedule.flatMap(day => {
-      return Object.entries(day.assignments).map(([role, assignment]) => {
-        if (assignment?.employeeId) {
-          const employee = employees.find(e => e.id === assignment.employeeId);
-          return [
-            `${day.dayName} ${day.day}`, // Date
-            employee.name,              // Employé
-            role,                       // Rôle
-            calculateDailySalary(employee.id, assignment.hours).toFixed(2) + "€" // Salaire/Jour
-          ];
-        }
-        return null;
-      }).filter(Boolean);
-    });
+  // Sauvegarder une nouvelle ligne
+  const handleSave = async () => {
+    const payload = {
+      date,
+      employee,
+      role,
+      salaire,
+      jour,
+    };
 
     try {
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}:append?valueInputOption=USER_ENTERED&key=${API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ values: rows })
-        }
-      );
+      const response = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
 
-      if (response.ok) {
-        alert("✅ Données sauvegardées dans Google Sheets !");
-      } else {
-        const error = await response.json();
-        console.error(error);
-        alert("❌ Erreur lors de la sauvegarde (voir console)");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("❌ Impossible de contacter Google Sheets");
+      const result = await response.json();
+      alert("✅ Sauvegarde réussie !");
+      console.log("Réponse Google Sheets :", result);
+
+      // Recharger les données après sauvegarde
+      fetchData();
+
+      // Réinitialiser le formulaire
+      setDate("");
+      setEmployee("");
+      setRole("");
+      setSalaire("");
+      setJour("");
+    } catch (error) {
+      console.error("Erreur de sauvegarde :", error);
+      alert("❌ Erreur lors de la sauvegarde.");
     }
   };
 
-  const renderPlanning = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow">
-        <div className="flex items-center gap-4">
-          <select 
-            value={selectedMonth} 
-            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-            className="border rounded px-3 py-2"
-          >
-            {months.map((month, idx) => (
-              <option key={idx} value={idx}>{month}</option>
-            ))}
-          </select>
-          <select 
-            value={selectedYear} 
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="border rounded px-3 py-2"
-          >
-            {[2024, 2025, 2026].map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={saveToGoogleSheets}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Sauvegarder sur Google Sheets
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3 text-left font-semibold">Jour</th>
-                {roles.map(role => (
-                  <th key={role} className="p-3 text-center">{role}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {schedule.map((day, idx) => (
-                <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                  <td className="p-3 font-medium">{day.dayName} {day.day}</td>
-                  {roles.map(role => (
-                    <td key={role} className="p-2">
-                      <select
-                        value={day.assignments[role]?.employeeId || ''}
-                        onChange={(e) => updateAssignment(day.day, role, parseInt(e.target.value) || null)}
-                        className="w-full border rounded px-2 py-1 text-xs"
-                      >
-                        <option value="">-</option>
-                        {employees.filter(emp => emp.role === role).map(emp => (
-                          <option key={emp.id} value={emp.id}>{emp.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-3xl font-bold text-gray-900">Gestion RH & Comptable</h1>
-            <div className="flex space-x-1">
-              <button
-                onClick={() => setActiveTab('planning')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeTab === 'planning' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-              >
-                <Calendar size={20} /> Planning
-              </button>
-              <button
-                onClick={() => setActiveTab('employees')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeTab === 'employees' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-              >
-                <Users size={20} /> Employés
-              </button>
-              <button
-                onClick={() => setActiveTab('payroll')}
-                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${activeTab === 'payroll' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-              >
-                <Calculator size={20} /> Paie
-              </button>
-            </div>
-          </div>
-        </div>
+    <div style={{ padding: "20px", fontFamily: "Arial" }}>
+      <h2>📊 Gestion RH</h2>
+
+      {/* Formulaire */}
+      <div style={{ marginBottom: "15px" }}>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+        <input
+          type="text"
+          value={employee}
+          onChange={(e) => setEmployee(e.target.value)}
+          placeholder="Employé"
+        />
+        <input
+          type="text"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          placeholder="Rôle"
+        />
+        <input
+          type="number"
+          value={salaire}
+          onChange={(e) => setSalaire(e.target.value)}
+          placeholder="Salaire"
+        />
+        <input
+          type="text"
+          value={jour}
+          onChange={(e) => setJour(e.target.value)}
+          placeholder="Jour"
+        />
+        <button onClick={handleSave}>💾 Sauvegarder</button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {activeTab === 'planning' && renderPlanning()}
-      </div>
+      {/* Tableau */}
+      <h3>📑 Données enregistrées</h3>
+      {loading ? (
+        <p>⏳ Chargement...</p>
+      ) : (
+        <table border="1" cellPadding="8" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employé</th>
+              <th>Rôle</th>
+              <th>Salaire</th>
+              <th>Jour</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.length > 0 ? (
+              records.map((row, index) => (
+                <tr key={index}>
+                  <td>{row.date}</td>
+                  <td>{row.employee}</td>
+                  <td>{row.role}</td>
+                  <td>{row.salaire}</td>
+                  <td>{row.jour}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5">Aucune donnée disponible</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
     </div>
   );
-};
+}
 
 export default HRManagementTool;
