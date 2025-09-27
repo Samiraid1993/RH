@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Calculator, Download } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+import { Calendar, Users, Calculator } from 'lucide-react';
+
+// === Connexion à Supabase ===
+const supabaseUrl = "https://zcbzlczupnwsdfngolca.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjYnpsY3p1cG53c2RmbmdvbGNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5NzkzOTEsImV4cCI6MjA3NDU1NTM5MX0.WtEDMB9buLbo0YZqyxBWNRPNoTqhwMpMiGpJ_K_ihy4";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const HRManagementTool = () => {
   const [activeTab, setActiveTab] = useState('planning');
@@ -77,43 +83,34 @@ const HRManagementTool = () => {
     return employee ? employee.hourlyRate * hours : 0;
   };
 
-  // === Connexion Google Sheets ===
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9MAORR6kY4_tM9dsT3vHNEVh26sJKo-wsOyrmCp0_K4rIRP_FjQLsTWE3TQfRvyQ-CQ/exec"; // ⚠️ Mets ici ton vrai lien Apps Script
-
-  const savePlanningToSheets = async () => {
+  // === Sauvegarde vers Supabase ===
+  const savePlanningToSupabase = async () => {
     const rows = schedule.flatMap(day => {
       return Object.entries(day.assignments).map(([roleKey, assignment]) => {
         if (assignment?.employeeId) {
           const [role, idx] = roleKey.split("_");
           const employee = employees.find(e => e.id === assignment.employeeId);
           return {
-            date: `${day.dayName} ${day.day} ${months[selectedMonth]} ${selectedYear}`,
+            date: `${day.day} ${months[selectedMonth]} ${selectedYear}`,
             employee: employee?.name,
-            role,
-            salaire: calculateDailySalary(employee.id, assignment.hours).toFixed(2),
-            jour: day.dayName
+            fonction: role,
+            heures: assignment.hours,
+            taux_horaire: employee?.hourlyRate,
+            salaire_total: calculateDailySalary(employee.id, assignment.hours)
           };
         }
         return null;
       }).filter(Boolean);
     });
 
-    try {
-      const response = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rows),
-      });
+    const { data, error } = await supabase
+      .from("planning")
+      .insert(rows);
 
-      const result = await response.json();
-      if (result.status === "success") {
-        alert("✅ Planning sauvegardé dans Google Sheets !");
-      } else {
-        alert("❌ Erreur: " + result.message);
-      }
-    } catch (error) {
-      console.error("Erreur de sauvegarde :", error);
-      alert("❌ Impossible de sauvegarder");
+    if (error) {
+      alert("❌ Erreur : " + error.message);
+    } else {
+      alert("✅ Planning sauvegardé dans Supabase !");
     }
   };
 
@@ -143,10 +140,10 @@ const HRManagementTool = () => {
         </div>
 
         <button
-          onClick={savePlanningToSheets}
+          onClick={savePlanningToSupabase}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          💾 Sauvegarder sur Google Sheets
+          💾 Sauvegarder sur Supabase
         </button>
       </div>
 
