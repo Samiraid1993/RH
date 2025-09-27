@@ -78,7 +78,7 @@ const HRManagementTool = () => {
   };
 
   // === Connexion Google Sheets ===
-  const SCRIPT_URL = "https://script.google.com/macros/s/TON-LIEN-EXEC/exec"; // ⚠️ Mets ici ton vrai lien Apps Script
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9MAORR6kY4_tM9dsT3vHNEVh26sJKo-wsOyrmCp0_K4rIRP_FjQLsTWE3TQfRvyQ-CQ/exec"; // ⚠️ Mets ici ton vrai lien Apps Script
 
   const savePlanningToSheets = async () => {
     const rows = schedule.flatMap(day => {
