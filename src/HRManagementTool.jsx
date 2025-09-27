@@ -73,7 +73,7 @@ const HRManagementTool = () => {
   // === Sauvegarde vers Google Sheets ===
   const saveToGoogleSheets = async () => {
     const API_KEY = "AIzaSyAE0-wIF_9PMImV86ZX2aullehrYmO71bY"; // <-- Remplace ici
-    const SHEET_ID = "1fnpWA_P1uUE0SbhiIfwj1hmlraZBFMIrv5MxSX0Qzno/edit?gid=0#gid=0"; // <-- Remplace ici
+    const SHEET_ID = "1fnpWA_P1uUE0SbhiIfwj1hmlraZBFMIrv5MxSX0Qzno"; // <-- Remplace ici
     const RANGE = "Feuille1!A:D";
 
     const rows = schedule.flatMap(day => {
