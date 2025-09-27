@@ -1,42 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
-function HRManagementTool() {
+export default function HRManagementTool() {
   const [date, setDate] = useState("");
-  const [employee, setEmployee] = useState("");
-  const [role, setRole] = useState("");
+  const [secretaire1, setSecretaire1] = useState("");
+  const [secretaire2, setSecretaire2] = useState("");
+  const [secretaire3, setSecretaire3] = useState("");
+  const [dentiste1, setDentiste1] = useState("");
+  const [dentiste2, setDentiste2] = useState("");
+  const [assistante1, setAssistante1] = useState("");
+  const [assistante2, setAssistante2] = useState("");
   const [salaire, setSalaire] = useState("");
   const [jour, setJour] = useState("");
+  const [savedData, setSavedData] = useState([]);
 
-  const [records, setRecords] = useState([]); // pour afficher les lignes Google Sheets
-  const [loading, setLoading] = useState(false);
+  // Ton lien Google Apps Script déployé en Web App
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyk0LxHlV3lbwQWJ9wULc6xmlUzqrQphCuMfmCXPyuUX2nXqw/exec";
 
-  // URL de ton Web App Google Apps Script
-  const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbz3THCrTl1Yijw4ST0wQYXpwWbzQLE63nHUZKqRBFdOGa77gOqPI-GbMmGXvPVuBXnQpw/exec";
-
-  // Charger les données depuis Google Sheets
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(SCRIPT_URL);
-      const data = await response.json();
-      setRecords(data);
-    } catch (error) {
-      console.error("Erreur lors du chargement :", error);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Sauvegarder une nouvelle ligne
   const handleSave = async () => {
-    const payload = {
+    const newEntry = {
       date,
-      employee,
-      role,
+      secretaire1,
+      secretaire2,
+      secretaire3,
+      dentiste1,
+      dentiste2,
+      assistante1,
+      assistante2,
       salaire,
       jour,
     };
@@ -44,102 +33,94 @@ function HRManagementTool() {
     try {
       const response = await fetch(SCRIPT_URL, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(newEntry),
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       const result = await response.json();
-      alert("✅ Sauvegarde réussie !");
-      console.log("Réponse Google Sheets :", result);
-
-      // Recharger les données après sauvegarde
-      fetchData();
-
-      // Réinitialiser le formulaire
-      setDate("");
-      setEmployee("");
-      setRole("");
-      setSalaire("");
-      setJour("");
+      if (result.status === "success") {
+        alert("✅ Données sauvegardées !");
+        setSavedData([...savedData, newEntry]);
+        setDate("");
+        setSecretaire1("");
+        setSecretaire2("");
+        setSecretaire3("");
+        setDentiste1("");
+        setDentiste2("");
+        setAssistante1("");
+        setAssistante2("");
+        setSalaire("");
+        setJour("");
+      } else {
+        alert("❌ Erreur lors de la sauvegarde.");
+      }
     } catch (error) {
-      console.error("Erreur de sauvegarde :", error);
-      alert("❌ Erreur lors de la sauvegarde.");
+      console.error("Erreur :", error);
+      alert("⚠️ Impossible de contacter Google Sheets");
     }
   };
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
       <h2>📊 Gestion RH</h2>
+      <div style={{ marginBottom: "10px" }}>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} /> <br /><br />
 
-      {/* Formulaire */}
-      <div style={{ marginBottom: "15px" }}>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-        <input
-          type="text"
-          value={employee}
-          onChange={(e) => setEmployee(e.target.value)}
-          placeholder="Employé"
-        />
-        <input
-          type="text"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          placeholder="Rôle"
-        />
-        <input
-          type="number"
-          value={salaire}
-          onChange={(e) => setSalaire(e.target.value)}
-          placeholder="Salaire"
-        />
-        <input
-          type="text"
-          value={jour}
-          onChange={(e) => setJour(e.target.value)}
-          placeholder="Jour"
-        />
+        <input placeholder="Secrétaire 1" value={secretaire1} onChange={(e) => setSecretaire1(e.target.value)} /> <br />
+        <input placeholder="Secrétaire 2" value={secretaire2} onChange={(e) => setSecretaire2(e.target.value)} /> <br />
+        <input placeholder="Secrétaire 3" value={secretaire3} onChange={(e) => setSecretaire3(e.target.value)} /> <br /><br />
+
+        <input placeholder="Dentiste 1" value={dentiste1} onChange={(e) => setDentiste1(e.target.value)} /> <br />
+        <input placeholder="Dentiste 2" value={dentiste2} onChange={(e) => setDentiste2(e.target.value)} /> <br /><br />
+
+        <input placeholder="Assistante 1" value={assistante1} onChange={(e) => setAssistante1(e.target.value)} /> <br />
+        <input placeholder="Assistante 2" value={assistante2} onChange={(e) => setAssistante2(e.target.value)} /> <br /><br />
+
+        <input placeholder="Salaire" value={salaire} onChange={(e) => setSalaire(e.target.value)} /> <br />
+        <input placeholder="Jour" value={jour} onChange={(e) => setJour(e.target.value)} /> <br /><br />
+
         <button onClick={handleSave}>💾 Sauvegarder</button>
       </div>
 
-      {/* Tableau */}
-      <h3>📑 Données enregistrées</h3>
-      {loading ? (
-        <p>⏳ Chargement...</p>
-      ) : (
-        <table border="1" cellPadding="8" style={{ borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Employé</th>
-              <th>Rôle</th>
-              <th>Salaire</th>
-              <th>Jour</th>
-            </tr>
-          </thead>
-          <tbody>
-            {records.length > 0 ? (
-              records.map((row, index) => (
-                <tr key={index}>
-                  <td>{row.date}</td>
-                  <td>{row.employee}</td>
-                  <td>{row.role}</td>
-                  <td>{row.salaire}</td>
-                  <td>{row.jour}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5">Aucune donnée disponible</td>
+      <h3>Données enregistrées</h3>
+      <table border="1" cellPadding="5">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Secrétaire 1</th>
+            <th>Secrétaire 2</th>
+            <th>Secrétaire 3</th>
+            <th>Dentiste 1</th>
+            <th>Dentiste 2</th>
+            <th>Assistante 1</th>
+            <th>Assistante 2</th>
+            <th>Salaire</th>
+            <th>Jour</th>
+          </tr>
+        </thead>
+        <tbody>
+          {savedData.length === 0 ? (
+            <tr><td colSpan="10">Aucune donnée disponible</td></tr>
+          ) : (
+            savedData.map((entry, index) => (
+              <tr key={index}>
+                <td>{entry.date}</td>
+                <td>{entry.secretaire1}</td>
+                <td>{entry.secretaire2}</td>
+                <td>{entry.secretaire3}</td>
+                <td>{entry.dentiste1}</td>
+                <td>{entry.dentiste2}</td>
+                <td>{entry.assistante1}</td>
+                <td>{entry.assistante2}</td>
+                <td>{entry.salaire}</td>
+                <td>{entry.jour}</td>
               </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
-
-export default HRManagementTool;
