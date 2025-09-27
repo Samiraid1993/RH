@@ -12,7 +12,7 @@ function HRManagementTool() {
 
   // URL de ton Web App Google Apps Script
   const SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxNoLkKxH4vNoNgzZaka83RWUQ-swAW4jS6yAiNb58haputHZNClcFjy3u3_sk/exec";
+    "https://script.google.com/macros/s/AKfycbz3THCrTl1Yijw4ST0wQYXpwWbzQLE63nHUZKqRBFdOGa77gOqPI-GbMmGXvPVuBXnQpw/exec";
 
   // Charger les données depuis Google Sheets
   const fetchData = async () => {
