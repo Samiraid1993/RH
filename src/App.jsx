@@ -51,15 +51,27 @@ function App() {
 
   // Charger les données depuis localStorage au démarrage
   useEffect(() => {
-    const savedEmployees = localStorage.getItem('rh-employees')
-    const savedPlanning = localStorage.getItem('rh-planning')
-    
-    if (savedEmployees) {
-      setEmployees(JSON.parse(savedEmployees))
+    const loadData = (key, validator, setter) => {
+      const storedValue = localStorage.getItem(key)
+      if (!storedValue) {
+        return
+      }
+
+      try {
+        const parsedValue = JSON.parse(storedValue)
+        if (validator(parsedValue)) {
+          setter(parsedValue)
+        } else {
+          throw new Error(`Valeur inattendue dans le stockage pour ${key}`)
+        }
+      } catch (error) {
+        console.error(`Impossible de charger les données locales pour ${key}`, error)
+        localStorage.removeItem(key)
+      }
     }
-    if (savedPlanning) {
-      setPlanning(JSON.parse(savedPlanning))
-    }
+
+    loadData('rh-employees', Array.isArray, setEmployees)
+    loadData('rh-planning', value => value && typeof value === 'object', setPlanning)
   }, [])
 
   // Sauvegarder automatiquement les données
@@ -152,14 +164,6 @@ function App() {
       })
       setShowAddEmployee(false)
     }
-  }
-
-  // Modifier un employé
-  const updateEmployee = (id, updatedEmployee) => {
-    setEmployees(employees.map(emp => 
-      emp.id === id ? { ...emp, ...updatedEmployee } : emp
-    ))
-    setEditingEmployee(null)
   }
 
   // Supprimer un employé
@@ -298,6 +302,7 @@ function App() {
           if (data.planning) setPlanning(data.planning)
           alert('Données importées avec succès !')
         } catch (error) {
+          console.error('Erreur lors de l\'importation du fichier', error)
           alert('Erreur lors de l\'importation du fichier')
         }
       }
